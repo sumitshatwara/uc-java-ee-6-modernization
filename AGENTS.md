@@ -12,10 +12,16 @@ make run                   # Liberty container on :9083 with the repo's server.x
 make parity TARGET=http://localhost:9083/daytrader   # replay 13 scenarios, writes work/parity/report.md, non-zero on any diff
 make record                # re-record parity/transcripts from the LIBERTY BASELINE ONLY
 make inventory             # regenerate docs/WEBSPHERE_INVENTORY.md (CI fails if it is stale)
+make boot-build            # verify standalone Spring Boot app with JDK 21
+make boot-run              # launch it on :8080 and seed H2
+make boot-stop             # stop the background Spring Boot process
+make boot-image            # build the standalone Spring Boot Docker image
+make boot-container        # replace the jar app with the container and seed H2
 make down
 ```
 
 - Build with JDK 8 (the POMs target Java 7 via `net.wasdev.maven.parent:java7-parent`). The Makefile picks up `/usr/lib/jvm/java-8-openjdk-amd64` by itself.
+- The standalone `daytrader-boot/` project uses Java 21, H2 in PostgreSQL mode locally, and `-Duser.timezone=UTC`. Set `MVN_SETTINGS=/path/to/settings.xml` for its Maven targets when a repository mirror is needed.
 - App: `http://localhost:9083/daytrader/`. REST: `http://localhost:9083/rest/addresses`. Seeded login: `uid:0` / `xxx`.
 - Seeding (`buildDB`) takes about 1–2 minutes.
 
@@ -35,6 +41,8 @@ make down
 | --- | --- |
 | `docs/BASELINE.md` | Versions, commands, smoke results, known quirks |
 | `docs/WEBSPHERE_INVENTORY.md` | Generated inventory (`tools/ws_inventory.py`) |
+| `docs/MIGRATION_PLAN.md` | Ordered phases, mappings, risks, and decisions |
+| `daytrader-boot/` | Standalone Spring Boot 3 / Java 21 migration scaffold |
 | `docs/TARGET_STATE.md` | Spring Boot 3.3 / Java 21 / ECS Fargate target and Terraform layout |
 | `docs/LAB.md` | Prompts for the three live-demo steps |
 | `parity/` | Harness: `record.py`, `compare.py`, `scenarios.py`, `rules.yaml`, transcripts |

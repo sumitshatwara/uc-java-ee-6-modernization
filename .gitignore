@@ -1,5 +1,6 @@
 /.settings/
 /target/
+/daytrader-boot/target/
 .*.swp
 /.project
 /.settings/
