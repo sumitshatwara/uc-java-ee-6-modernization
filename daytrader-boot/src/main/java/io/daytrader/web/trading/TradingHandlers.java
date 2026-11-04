@@ -181,7 +181,7 @@ public class TradingHandlers implements ActionHandler {
                     FinancialUtils.printQuoteLink(holding.getQuoteID()), String.valueOf(holding.getQuantity()),
                     String.valueOf(holding.getPurchasePrice()), String.valueOf(quote.getPrice()),
                     basis.toString(), marketValue.toString(), FinancialUtils.printGainHTML(gain),
-                    "<A href=\"app?action=sell&amp;holdingID=" + holdingID + "\">sell</A>");
+                    "<A href=\"app?action=sell&holdingID=" + holdingID + "\">sell</A>");
         }
     }
 }

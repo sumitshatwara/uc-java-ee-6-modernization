@@ -69,7 +69,7 @@ class TradingHandlersTest {
         mockMvc.perform(get("/app").session(session).param("action", "portfolio"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Number of Holdings: </b><span>1</span>")))
-                .andExpect(content().string(containsString("app?action=sell&amp;holdingID=")))
+                .andExpect(content().string(containsString("app?action=sell&holdingID=")))
                 .andExpect(content().string(containsString("purchase price")));
         Collection<HoldingDataBean> holdings = tradeService.getHoldings(uid);
         assertEquals(1, holdings.size());
