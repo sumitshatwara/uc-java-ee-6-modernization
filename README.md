@@ -9,12 +9,28 @@ make up && make build && make run && make parity TARGET=http://localhost:9083/da
 - [AGENTS.md](AGENTS.md): commands and rules for agents
 - [docs/BASELINE.md](docs/BASELINE.md): how the legacy app builds and runs today
 - [docs/WEBSPHERE_INVENTORY.md](docs/WEBSPHERE_INVENTORY.md): generated WebSphere dependency inventory
+- [docs/MIGRATION_PLAN.md](docs/MIGRATION_PLAN.md): ordered migration phases, mappings, and decisions
+- [daytrader-boot/README.md](daytrader-boot/README.md): Spring Boot scaffold, seed, and parity commands
 - [docs/TARGET_STATE.md](docs/TARGET_STATE.md): target architecture
 - [docs/LAB.md](docs/LAB.md): live-demo prompts
 - [parity/](parity/NORMALIZATION.md): behavioural parity harness
 - [legacy-ops/](legacy-ops/README.md): **synthetic** traditional WebSphere on AIX operations artefacts
 
 The original README follows.
+
+## Spring Boot migration scaffold
+
+The standalone `daytrader-boot/` project is built with Java 21 and keeps the existing Liberty baseline unchanged:
+
+```bash
+make boot-build
+make boot-run
+curl -s http://localhost:8080/daytrader/actuator/health
+make parity TARGET=http://localhost:8080/daytrader
+make boot-stop
+```
+
+Pass `MVN_SETTINGS=/path/to/settings.xml` to `make boot-build` or `make boot-run` when Maven needs a mirror. See [the scaffold README](daytrader-boot/README.md) for details.
 
 ---
 
