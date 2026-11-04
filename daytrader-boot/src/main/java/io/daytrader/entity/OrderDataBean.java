@@ -133,7 +133,12 @@ public class OrderDataBean implements Serializable {
     public boolean isBuy() { return "buy".equalsIgnoreCase(orderType); }
     public boolean isSell() { return "sell".equalsIgnoreCase(orderType); }
     public boolean isOpen() { return "open".equalsIgnoreCase(orderStatus) || "processing".equalsIgnoreCase(orderStatus); }
-    public boolean isCompleted() { return "closed".equalsIgnoreCase(orderStatus) || "completed".equalsIgnoreCase(orderStatus); }
+    public boolean isCompleted() {
+        String status = getOrderStatus();
+        return status.compareToIgnoreCase("completed") == 0
+                || status.compareToIgnoreCase("alertcompleted") == 0
+                || status.compareToIgnoreCase("cancelled") == 0;
+    }
     public void cancel() { orderStatus = "cancelled"; }
     public String toHTML() {
         return "<BR>Order <B>" + orderID + "</B><LI>      orderType: " + orderType

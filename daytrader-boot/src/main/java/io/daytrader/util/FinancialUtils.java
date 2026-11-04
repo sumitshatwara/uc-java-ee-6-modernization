@@ -20,6 +20,7 @@ import io.daytrader.entity.HoldingDataBean;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Collection;
+import java.util.Iterator;
 
 public final class FinancialUtils {
     public static final int SCALE = 2;
@@ -31,35 +32,65 @@ public final class FinancialUtils {
     private FinancialUtils() { }
 
     public static BigDecimal computeGain(BigDecimal currentBalance, BigDecimal openBalance) {
-        return currentBalance.subtract(openBalance).setScale(SCALE, ROUND);
+        return currentBalance.subtract(openBalance).setScale(SCALE);
     }
     public static BigDecimal computeGainPercent(BigDecimal currentBalance, BigDecimal openBalance) {
-        if (openBalance == null || openBalance.signum() == 0) return ZERO;
-        return currentBalance.divide(openBalance, ROUND).subtract(ONE).multiply(HUNDRED);
+        if (openBalance.doubleValue() == 0.0) return ZERO;
+        BigDecimal gainPercent = currentBalance.divide(openBalance, ROUND).subtract(ONE).multiply(HUNDRED);
+        return gainPercent;
     }
     public static BigDecimal computeHoldingsTotal(Collection<HoldingDataBean> holdings) {
-        if (holdings == null) return ZERO;
-        return holdings.stream()
-                .map(holding -> holding.getPurchasePrice().multiply(BigDecimal.valueOf(holding.getQuantity())))
-                .reduce(ZERO, BigDecimal::add).setScale(SCALE, ROUND);
+        BigDecimal holdingsTotal = new BigDecimal(0.0).setScale(SCALE);
+        if (holdings == null) return holdingsTotal;
+        Iterator<HoldingDataBean> iterator = holdings.iterator();
+        while (iterator.hasNext()) {
+            HoldingDataBean holdingData = iterator.next();
+            BigDecimal total =
+                    holdingData.getPurchasePrice().multiply(new BigDecimal(holdingData.getQuantity()));
+            holdingsTotal = holdingsTotal.add(total);
+        }
+        return holdingsTotal.setScale(SCALE);
     }
     public static String printGainHTML(BigDecimal gain) {
-        String color = gain.signum() < 0 ? "#ff0000" : "#009900";
-        String arrow = gain.signum() < 0 ? "arrowdown.gif" : "arrowup.gif";
-        return "<FONT color=\"" + color + "\">" + gain.setScale(SCALE, ROUND)
-                + "</FONT><IMG src=\"images/" + arrow + "\" width=\"10\" height=\"10\" border=\"0\"></IMG>";
+        String htmlString;
+        String arrow;
+        if (gain.doubleValue() < 0.0) {
+            htmlString = "<FONT color=\"#ff0000\">";
+            arrow = "arrowdown.gif";
+        } else {
+            htmlString = "<FONT color=\"#009900\">";
+            arrow = "arrowup.gif";
+        }
+        htmlString += gain.setScale(SCALE, ROUND) + "</FONT><IMG src=\"images/" + arrow
+                + "\" width=\"10\" height=\"10\" border=\"0\"></IMG>";
+        return htmlString;
     }
     public static String printChangeHTML(double change) {
-        String color = change < 0 ? "#ff0000" : "#009900";
-        String arrow = change < 0 ? "arrowdown.gif" : "arrowup.gif";
-        return "<FONT color=\"" + color + "\">" + change
-                + "</FONT><IMG src=\"images/" + arrow + "\" width=\"10\" height=\"10\" border=\"0\"></IMG>";
+        String htmlString;
+        String arrow;
+        if (change < 0.0) {
+            htmlString = "<FONT color=\"#ff0000\">";
+            arrow = "arrowdown.gif";
+        } else {
+            htmlString = "<FONT color=\"#009900\">";
+            arrow = "arrowup.gif";
+        }
+        htmlString += change + "</FONT><IMG src=\"images/" + arrow + "\" width=\"10\" height=\"10\" border=\"0\"></IMG>";
+        return htmlString;
     }
     public static String printGainPercentHTML(BigDecimal gain) {
-        String prefix = gain.signum() < 0 ? "(<B><FONT color=\"#ff0000\">" : "(<B><FONT color=\"#009900\">+";
-        String arrow = gain.signum() < 0 ? "arrowdown.gif" : "arrowup.gif";
-        return prefix + gain.setScale(SCALE, ROUND) + "%</FONT></B>)<IMG src=\"images/" + arrow
+        String htmlString;
+        String arrow;
+        if (gain.doubleValue() < 0.0) {
+            htmlString = "(<B><FONT color=\"#ff0000\">";
+            arrow = "arrowdown.gif";
+        } else {
+            htmlString = "(<B><FONT color=\"#009900\">+";
+            arrow = "arrowup.gif";
+        }
+        htmlString += gain.setScale(SCALE, ROUND) + "%</FONT></B>)<IMG src=\"images/" + arrow
                 + "\" width=\"10\" height=\"10\" border=\"0\"></IMG>";
+        return htmlString;
     }
     public static String printQuoteLink(String symbol) {
         return "<A href=\"app?action=quotes&symbols=" + symbol + "\">" + symbol + "</A>";
