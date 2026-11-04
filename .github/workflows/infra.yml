@@ -1,0 +1,33 @@
+name: Infrastructure validation
+on:
+  push:
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+  pull_request:
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+permissions:
+  contents: read
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory:
+          - infra/terraform/modules/network
+          - infra/terraform/modules/alb
+          - infra/terraform/modules/rds
+          - infra/terraform/modules/ecs
+          - infra/terraform/envs/dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+      - run: terraform fmt -check -recursive infra/terraform
+      - run: terraform init -backend=false -input=false -lockfile=readonly
+        working-directory: ${{ matrix.directory }}
+      - run: terraform validate
+        working-directory: ${{ matrix.directory }}
