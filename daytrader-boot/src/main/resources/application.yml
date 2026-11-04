@@ -1,0 +1,55 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /daytrader
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:daytrader;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    hikari:
+      transaction-isolation: TRANSACTION_READ_COMMITTED
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  thymeleaf:
+    cache: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
+
+daytrader:
+  runtime-mode: EJB3
+  order-processing-mode: SYNCH
+  max-users: 15000
+  max-quotes: 10000
+  max-holdings: 10
+  key-block-size: 1000
+  update-quote-prices: true
+  publish-quote-price-change: false
+  market-summary-interval: 20
+  prim-iterations: 1
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/daytrader}
+    username: ${SPRING_DATASOURCE_USERNAME:daytrader}
+    password: ${SPRING_DATASOURCE_PASSWORD:}

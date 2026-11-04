@@ -1,0 +1,54 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE HTML>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>DayTrader Login</title>
+  <link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body bgcolor="#ffffff" link="#000099">
+<div th:replace="~{fragments/layout :: header('DayTrader Login')}"></div>
+<table width="100%" height="30"><tbody><tr>
+  <td></td><td><font color="#ff0033" th:text="${message}"></font></td><td></td>
+</tr></tbody></table>
+<div align="left"></div>
+<table width="616"><tbody>
+  <tr><td width="2%" bgcolor="#e7e4e7" rowspan="3"></td><td width="98%"><b>Log in</b><hr></td></tr>
+  <tr><td align="right"><font size="-1">Username &nbsp; &nbsp; &nbsp;&nbsp;
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Password &nbsp; &nbsp; &nbsp;
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</font></td></tr>
+  <tr><td align="right">
+    <form action="app" method="POST">
+      <input size="10" type="text" name="uid" value="uid:0"> &nbsp; &nbsp; &nbsp; &nbsp;
+      <input size="10" type="password" name="passwd" value="xxx"> &nbsp;
+      <input type="submit" value="Log in"><input type="hidden" name="action" value="login">
+    </form>
+  </td></tr>
+</tbody></table>
+<table width="616"><tbody>
+  <tr><td width="2%"></td><td width="98%"><hr></td></tr>
+  <tr><td bgcolor="#e7e4e7" rowspan="4"></td><td><b><font size="-1" color="#000000">First time user? &nbsp;Please
+    Register</font></b></td></tr>
+  <tr><td></td></tr>
+  <tr><td align="right"><blockquote><a href="register.jsp">Register&nbsp;With&nbsp;DayTrader</a></blockquote></td></tr>
+  <tr><td><hr></td></tr>
+</tbody></table>
+<div th:replace="~{fragments/layout :: footer('DayTrader Login')}"></div>
+</body>
+</html>
