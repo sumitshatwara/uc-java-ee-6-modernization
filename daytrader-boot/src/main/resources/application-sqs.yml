@@ -1,0 +1,11 @@
+# Region and credentials are resolved from the AWS SDK default provider chain (ECS task role).
+spring:
+  cloud:
+    aws:
+      sqs:
+        enabled: true
+
+daytrader:
+  order-processing-mode: ASYNCH_2PHASE
+  messaging:
+    broker-queue: ${DAYTRADER_BROKER_QUEUE:daytrader-broker}

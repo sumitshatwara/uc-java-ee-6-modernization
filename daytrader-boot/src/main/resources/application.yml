@@ -4,6 +4,10 @@ server:
     context-path: /daytrader
 
 spring:
+  cloud:
+    aws:
+      sqs:
+        enabled: false
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:daytrader;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
     username: ${SPRING_DATASOURCE_USERNAME:sa}
