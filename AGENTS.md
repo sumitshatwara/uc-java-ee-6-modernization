@@ -15,6 +15,8 @@ make inventory             # regenerate docs/WEBSPHERE_INVENTORY.md (CI fails if
 make boot-build            # verify standalone Spring Boot app with JDK 21
 make boot-run              # launch it on :8080 and seed H2
 make boot-stop             # stop the background Spring Boot process
+make boot-image            # build the standalone Spring Boot Docker image
+make boot-container        # replace the jar app with the container and seed H2
 make down
 ```
 

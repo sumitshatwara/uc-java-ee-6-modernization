@@ -17,13 +17,15 @@ BOOT_JDK      ?= $(firstword $(wildcard /usr/lib/jvm/java-21-openjdk-amd64 /usr/
 BOOT_MVN      ?= $(if $(wildcard /home/ubuntu/tools/apache-maven-3.9.16/bin/mvn),/home/ubuntu/tools/apache-maven-3.9.16/bin/mvn,mvn)
 MVN_SETTINGS  ?=
 BOOT_MVN_SETTINGS = $(if $(strip $(MVN_SETTINGS)),-s "$(MVN_SETTINGS)")
+MAVEN_MIRROR_URL ?=
+BOOT_DOCKER_MIRROR_ARG = $(if $(strip $(MAVEN_MIRROR_URL)),--build-arg MAVEN_MIRROR_URL=$(MAVEN_MIRROR_URL))
 BOOT_BASE_URL ?= http://localhost:8080/daytrader
 
 EAR           := $(CURDIR)/daytrader3-ee6/target/daytrader3-ee6-1.0-SNAPSHOT.ear
 SERVER_XML    := $(CURDIR)/daytrader3-ee6-wlpcfg/servers/daytrader3_Sample/server.xml
 DERBY_DIR     := $(CURDIR)/daytrader3-ee6-wlpcfg/shared/resources/Daytrader3_SampleDerbyLibs
 
-.PHONY: up build test run seed record parity inventory down logs boot-build boot-run boot-stop
+.PHONY: up build test run seed record parity inventory down logs boot-build boot-run boot-stop boot-image boot-container
 
 up: ## Pull the Liberty image and install the parity harness's Python deps
 	docker pull $(LIBERTY_IMAGE)
@@ -73,3 +75,12 @@ boot-run: boot-build ## Start the Spring Boot app on :8080 and seed its H2 datab
 
 boot-stop: ## Stop the background Spring Boot app started by boot-run
 	if test -f work/boot.pid; then kill "$$(cat work/boot.pid)" && rm -f work/boot.pid; fi
+
+boot-image: ## Build the standalone Spring Boot Docker image
+	docker build $(BOOT_DOCKER_MIRROR_ARG) -t daytrader-boot:local -f daytrader-boot/Dockerfile daytrader-boot
+
+boot-container: boot-image ## Replace the jar app with the container and seed H2
+	$(MAKE) boot-stop
+	-docker rm -f daytrader-boot
+	docker run -d --name daytrader-boot -p 8080:8080 daytrader-boot:local
+	$(PY) parity/seed.py --target http://localhost:8080/daytrader
