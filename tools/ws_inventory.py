@@ -3,7 +3,7 @@
 
 Sources: ibm-*.xml bindings/extensions, Java EE descriptors, Java annotations and JNDI lookups,
 EJBs and MDBs, Liberty server.xml features and resources, com.ibm.* imports, and the synthetic
-wsadmin scripts in legacy-ops/. The replacement column is deliberately left as TBD.
+wsadmin scripts in legacy-ops/. Each row is mapped to a proposed Spring Boot / AWS replacement.
 Run: python3 tools/ws_inventory.py [--check]
 """
 import argparse
@@ -14,8 +14,82 @@ import xml.etree.ElementTree as ET
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT = os.path.join(REPO, "docs", "WEBSPHERE_INVENTORY.md")
-SKIP_DIRS = {".git", "target", "build", ".venv", "node_modules", "work", "__pycache__", ".gradle"}
+SKIP_DIRS = {".git", "target", "build", ".venv", "node_modules", "work", "__pycache__", ".gradle",
+             "daytrader-boot", "infra"}
 PROJECT_PACKAGE = "com.ibm.websphere.samples.daytrader"
+
+REPLACEMENTS = [
+    (r"IBM binding/extension file", r"^ibm-ejb-jar-bnd\.xml$",
+     "Deleted; EJB bindings become Spring bean wiring (@Service, @SqsListener) and application.yml."),
+    (r"IBM binding/extension file", r"^ibm-web-bnd\.xml$",
+     "Deleted; resource refs become injected beans and the virtual host becomes an ALB listener."),
+    (r"IBM binding/extension file", r"^ibm-web-ext\.xml$",
+     "Deleted; preserve isolation with spring.datasource.hikari.transaction-isolation=TRANSACTION_READ_COMMITTED."),
+    (r".*", r"^TradeDataSourceAuthData$",
+     "AWS Secrets Manager secret for Aurora-managed master credentials, injected as ECS task secrets "
+     "SPRING_DATASOURCE_USERNAME/PASSWORD."),
+    (r".*", r"^TradeAdminAuthData$",
+     "ECS task IAM role for SQS/SNS access; no static credentials."),
+    (r".*", r"jdbc/|DataSource",
+     "spring.datasource.* with HikariCP on Aurora PostgreSQL; inject the DataSource/repositories. "
+     "NoTx uses the same pool, with Spring managing non-transactional reads."),
+    (r".*", r"QueueConnectionFactory|TradeBrokerQCF|TradeBrokerQueue|TradeBrokerMDB|DTBroker3MDB",
+     "Amazon SQS queue daytrader-broker: SqsTemplate send and @SqsListener in TradeBrokerListener "
+     "(Spring Cloud AWS 3.x), profile sqs and off by default; synchronous orders remain the default."),
+    (r".*", r"TopicConnectionFactory|TradeStreamerTCF|TradeStreamerTopic|TradeStreamerMDB|DTStreamer3MDB",
+     "Amazon SNS topic daytrader-streamer fanned out to SQS; @SqsListener in TradeStreamerListener "
+     "(Spring Cloud AWS 3.x), profile sqs and off by default."),
+    (r".*", r"DirectSLSBBean",
+     "Dropped: the Direct (JDBC) runtime mode is not ported; retain the JPA path (decision in MIGRATION_PLAN.md)."),
+    (r".*", r"TradeSLSBBean",
+     "Constructor-injected TradeService (@Service, @Transactional)."),
+    (r".*", r"java:comp/UserTransaction",
+     "@Transactional with JpaTransactionManager."),
+    (r".*", r"openejb:",
+     "Removed; OpenEJB container-specific fallback lookup is not used."),
+    (r".*", r"default_host",
+     "Embedded Tomcat server.port=8080 behind an ALB listener."),
+    (r".*", r"reloadEnabled|reloadInterval",
+     "spring.thymeleaf.cache controls template caching."),
+    (r"JPA persistence unit", r".*",
+     "Spring Data JPA auto-configuration (Hibernate 6 / Jakarta Persistence 3.1), spring.jpa.*, same tables."),
+    (r"EAR module", r"^web\.war$",
+     "Spring Boot fat jar with server.servlet.context-path=/daytrader."),
+    (r"EAR module", r"^Rest\.war$",
+     "@RestController in the same jar; /rest/** routed by Tomcat RewriteValve and an ALB path rule."),
+    (r"EAR module", r"^dt-ejb\.jar$",
+     "io.daytrader.service and io.daytrader.entity packages in the Spring Boot jar."),
+    (r"Liberty feature", r"^ejbLite-3\.1$",
+     "spring-context services with @Service and @Transactional."),
+    (r"Liberty feature", r"^jaxrs-1\.1$",
+     "spring-boot-starter-web."),
+    (r"Liberty feature", r"^jmsMdb-3\.1$|^wasJmsClient-1\.1$",
+     "spring-cloud-aws-starter-sqs (+ SNS), profile sqs; synchronous order processing is the default."),
+    (r"Liberty feature", r"^jpa-2\.0$",
+     "spring-boot-starter-data-jpa."),
+    (r"Liberty feature", r"^jsf-2\.0$",
+     "Dropped; port the UI to spring-boot-starter-thymeleaf."),
+    (r"Liberty feature", r"^wasJmsServer-1\.0$",
+     "Managed Amazon SQS/SNS; no embedded broker."),
+    (r"Liberty server config", r"^DerbyLib$",
+     "org.postgresql:postgresql driver dependency (H2 for local/tests)."),
+    (r"Liberty server config", r"^daytrader3$",
+     "ECS Fargate service."),
+    (r"Liberty server config", r"^defaultHttpEndpoint$",
+     "Embedded server.port=8080 behind the ALB; TLS terminates at the ALB."),
+    (r"Liberty server config", r"^defaultME$",
+     "Managed Amazon SQS/SNS resources."),
+    (r"com\.ibm\.\* import", r".*",
+     "Project-internal import; ported classes move to io.daytrader.* (the legacy package name is not a WebSphere API)."),
+    (r"wsadmin resource", r"^DB2$",
+     "PostgreSQL JDBC driver dependency."),
+    (r"wsadmin resource", r"^DB2UNIVERSAL_JDBC_DRIVER_PATH$",
+     "Not needed; the PostgreSQL JDBC driver is packaged inside the fat jar."),
+    (r"wsadmin resource", r"^DayTraderSharedLib$",
+     "Maven dependencies packaged in the Spring Boot fat jar."),
+    (r"wsadmin resource", r"^daytrader3$",
+     "ECS task definition and service with an ALB target group."),
+]
 
 
 def repoFiles():
@@ -239,7 +313,8 @@ def render(rows):
         "",
         "<!-- Generated by tools/ws_inventory.py. Do not edit by hand; run `make inventory`. -->",
         "",
-        f"**{len(rows)} rows.** The proposed Spring Boot / AWS replacement column is left `TBD` for the migration to fill in.",
+        f"**{len(rows)} rows.** Every row has a proposed Spring Boot / AWS replacement "
+        "(mapping table in `tools/ws_inventory.py`; see `docs/MIGRATION_PLAN.md`).",
         "",
         f"- `com.ibm.*` imports that are IBM APIs (outside the `{PROJECT_PACKAGE}` package): **{ibmApis}**. "
         "The app's own package is named `com.ibm.websphere.*`; that is a name, not a dependency on WebSphere-proprietary APIs.",
@@ -253,10 +328,20 @@ def render(rows):
         "| # | Category | Item | Source | Detail | Proposed Spring Boot / AWS replacement |",
         "| --- | --- | --- | --- | --- | --- |",
     ]
-    for i, (category, item, source, detail) in enumerate(rows, 1):
-        cells = [str(i), category, f"`{item}`", f"`{source}`" if "/" in source else source, detail, "TBD"]
+    for i, row in enumerate(rows, 1):
+        category, item, source, detail = row
+        cells = [str(i), category, f"`{item}`", f"`{source}`" if "/" in source else source, detail,
+                 replacementFor(row)]
         out.append("| " + " | ".join(c.replace("|", "\\|") for c in cells) + " |")
     return "\n".join(out) + "\n"
+
+
+def replacementFor(row):
+    category, item, source, detail = row
+    for categoryPattern, itemPattern, replacement in REPLACEMENTS:
+        if re.search(categoryPattern, category) and re.search(itemPattern, item):
+            return replacement
+    sys.exit(f"no migration replacement for inventory row: {category} / {item} ({source}: {detail})")
 
 
 def main():
