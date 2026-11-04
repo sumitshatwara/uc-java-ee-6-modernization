@@ -3,11 +3,14 @@ package io.daytrader.web;
 import io.daytrader.MarketSummaryDataBean;
 import io.daytrader.entity.AccountDataBean;
 import io.daytrader.entity.HoldingDataBean;
+import io.daytrader.entity.QuoteDataBean;
 import io.daytrader.service.TradeService;
 import io.daytrader.util.FinancialUtils;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
 
@@ -38,15 +41,28 @@ public class PageRenderer {
             request.session().setAttribute(SessionKeys.SESSION_CREATION_DATE, sessionCreated);
         }
         model.addAttribute("accountData", account);
+        model.addAttribute("accountCreatedDate",
+                new Date(account.getCreationDate().getTime()).toString());
         model.addAttribute("holdingDataBeans", holdingDataBeans);
         model.addAttribute("marketSummaryData", summary);
+        model.addAttribute("marketSummaryDate", summary.getSummaryDate().toString());
+        model.addAttribute("marketGainPercentHtml",
+                FinancialUtils.printGainPercentHTML(summary.getGainPercent()).substring(1));
+        Map<String, String> quoteGainHtml = new HashMap<>();
+        for (QuoteDataBean quote : summary.getTopGainers()) {
+            quoteGainHtml.put(quote.getSymbol(), FinancialUtils.printGainHTML(quote.getPrice().subtract(quote.getOpen())));
+        }
+        for (QuoteDataBean quote : summary.getTopLosers()) {
+            quoteGainHtml.put(quote.getSymbol(), FinancialUtils.printGainHTML(quote.getPrice().subtract(quote.getOpen())));
+        }
+        model.addAttribute("quoteGainHtml", quoteGainHtml);
         model.addAttribute("holdingsTotal", holdingsTotal);
         model.addAttribute("sumOfCashHoldings", sumOfCashHoldings);
         model.addAttribute("gainHtml", FinancialUtils.printGainHTML(gain));
         model.addAttribute("gainPercentHtml", FinancialUtils.printGainPercentHTML(gainPercent));
         model.addAttribute("pageDate", new Date());
         model.addAttribute("closedOrders", request.http().getAttribute("closedOrders"));
-        model.addAttribute("sessionCreationDate", sessionCreated);
+        model.addAttribute("sessionCreationDate", sessionCreated.toString());
         model.addAttribute("results", results == null ? "" : results);
         return "tradehome";
     }

@@ -46,30 +46,27 @@ public class TradeAppController {
             return pages.welcome(model, "");
         }
 
-        String userID = http.getParameter("uid");
-        if (userID == null || userID.isBlank()) {
-            HttpSession session = http.getSession();
-            userID = (String) session.getAttribute(SessionKeys.UID_BEAN);
-        }
         ActionHandler handler = byAction.get(action);
-        boolean publicAction = "login".equals(action) || "register".equals(action)
-                || handler != null && !handler.requiresLogin();
-        if (!publicAction && (userID == null || userID.isBlank())) {
-            return pages.welcome(model, "User Not Logged in");
+        if ("login".equals(action) || "register".equals(action)) {
+            if (handler == null) return pages.welcome(model, "TradeAppServlet: Invalid Action" + action);
+            return invoke(handler, new ActionRequest(action, http, response, null), response, model);
         }
 
-        if (handler == null) {
-            return pages.welcome(model, "TradeAppServlet: Invalid Action" + action);
-        }
-        if (handler.requiresLogin() && !publicAction && (userID == null || userID.isBlank())) {
+        HttpSession session = http.getSession();
+        String userID = (String) session.getAttribute(SessionKeys.UID_BEAN);
+        if (userID == null || userID.isBlank()) {
             return pages.welcome(model, "User Not Logged in");
         }
+        if (handler == null) return pages.welcome(model, "TradeAppServlet: Invalid Action" + action);
+        return invoke(handler, new ActionRequest(action, http, response, userID), response, model);
+    }
 
+    private String invoke(ActionHandler handler, ActionRequest request, HttpServletResponse response, Model model) {
         try {
-            return handler.handle(new ActionRequest(action, http, response, userID), model);
+            return handler.handle(request, model);
         } catch (Exception exception) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            model.addAttribute("requestUri", http.getRequestURI());
+            model.addAttribute("requestUri", request.http().getRequestURI());
             model.addAttribute("exceptionMessage", exception.getMessage());
             StringWriter trace = new StringWriter();
             exception.printStackTrace(new PrintWriter(trace));

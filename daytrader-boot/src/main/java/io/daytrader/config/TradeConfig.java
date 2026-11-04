@@ -73,6 +73,7 @@ public class TradeConfig {
         TradeConfig.publishQuotePriceChange = publishQuotePriceChange;
     }
     public int getMarketSummaryInterval() { return marketSummaryInterval; }
+    public static int getMarketSummaryIntervalValue() { return marketSummaryInterval; }
     public void setMarketSummaryInterval(int marketSummaryInterval) {
         TradeConfig.marketSummaryInterval = marketSummaryInterval;
     }

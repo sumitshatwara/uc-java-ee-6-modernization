@@ -28,7 +28,7 @@
 <table width="636"><tbody><tr>
   <td valign="top" width="377">
     <table width="384"><tbody>
-      <tr><td colspan="3"><b>Welcome &nbsp;<span th:text="${accountData.profileID}"></span>,</b></td></tr>
+      <tr><td colspan="3"><b th:text="|Welcome ${accountData.profileID},|">Welcome uid:0,</b></td></tr>
       <tr><td width="133"></td><td width="22"></td><td width="212"></td></tr>
       <tr><td colspan="3" align="left" bgcolor="#cccccc"><b> User Statistics</b></td></tr>
       <tr>
@@ -41,7 +41,7 @@
         <td width="22"></td>
         <td align="left" width="212">
           <span th:text="${accountData.accountID}"></span><br>
-          <span th:text="${accountData.creationDate}"></span><br>
+          <span th:text="${accountCreatedDate}"></span><br>
           <span th:text="${accountData.loginCount}"></span><br>
           <span th:text="${sessionCreationDate}"></span><br>
         </td>
@@ -58,11 +58,11 @@
         </td>
         <td width="22"></td>
         <td align="left" valign="top" width="212">
-          $ <span th:text="${accountData.balance}"></span><br>
+          <span th:text="|$ ${accountData.balance}|"></span><br>
           <span th:text="${#lists.size(holdingDataBeans)}"></span><br>
-          $ <span th:text="${holdingsTotal}"></span><br>
-          $ <span th:text="${sumOfCashHoldings}"></span><br>
-          $ <span th:text="${accountData.openBalance}"></span><br><hr>
+          <span th:text="|$ ${holdingsTotal}|"></span><br>
+          <span th:text="|$ ${sumOfCashHoldings}|"></span><br>
+          <span th:text="|$ ${accountData.openBalance}|"></span><br><hr>
         </td>
       </tr>
       <tr>
@@ -77,12 +77,12 @@
   <td align="center" valign="top" bgcolor="#ffffff" width="236"><br>
     <table border="1" bgcolor="#ffffff" width="100%" style="font-size: smaller"><tbody>
       <tr><td colspan="2" bgcolor="#000000" align="center" height="15"><font color="#ffffff"><b>Market Summary<br>
-        <span th:text="${marketSummaryData.summaryDate}"></span></b></font></td></tr>
+        <span th:text="${marketSummaryDate}"></span></b></font></td></tr>
       <tr>
         <td align="right" bgcolor="#fafcb6" height="47" width="100"><a href="docs/glossary.html">DayTrader Stock Index (TSIA)</a></td>
         <td align="center" valign="middle" bgcolor="#ffffff" height="47" width="141">
-          <span th:text="${marketSummaryData.TSIA}"></span>
-          <span th:utext="${T(io.daytrader.util.FinancialUtils).printGainPercentHTML(marketSummaryData.gainPercent)}"></span>
+          <span th:text="|${marketSummaryData.TSIA} (|"></span>
+          <span th:utext="${marketGainPercentHtml}"></span>
         </td>
       </tr>
       <tr><td align="right" bgcolor="#fafcb6"><a href="docs/glossary.html">Trading
@@ -94,7 +94,7 @@
           <tr align="center" th:each="quote : ${marketSummaryData.topGainers}">
             <td width="24"><a th:href="@{/app(action='quotes',symbols=${quote.symbol})}" th:text="${quote.symbol}"></a></td>
             <td th:text="${quote.price}"></td>
-            <td width="52" nowrap th:utext="${T(io.daytrader.util.FinancialUtils).printGainHTML(quote.price.subtract(quote.open))}"></td>
+            <td width="52" nowrap th:utext="${quoteGainHtml[quote.symbol]}"></td>
           </tr>
         </tbody></table></td>
       </tr>
@@ -105,7 +105,7 @@
           <tr align="center" th:each="quote : ${marketSummaryData.topLosers}">
             <td width="24" nowrap><a th:href="@{/app(action='quotes',symbols=${quote.symbol})}" th:text="${quote.symbol}"></a></td>
             <td th:text="${quote.price}"></td>
-            <td width="52" nowrap th:utext="${T(io.daytrader.util.FinancialUtils).printGainHTML(quote.price.subtract(quote.open))}"></td>
+            <td width="52" nowrap th:utext="${quoteGainHtml[quote.symbol]}"></td>
           </tr>
         </tbody></table></td>
       </tr>

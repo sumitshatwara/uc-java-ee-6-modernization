@@ -15,7 +15,6 @@ import io.daytrader.repository.QuoteRepository;
 import io.daytrader.util.FinancialUtils;
 import io.daytrader.util.Log;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class TradeService {
+    private static final Object MARKET_SUMMARY_LOCK = new Object();
+    private static long nextMarketSummary = System.currentTimeMillis();
+    private static volatile MarketSummaryDataBean cachedMarketSummary = MarketSummaryDataBean.getRandomInstance();
+
     private final AccountProfileRepository profiles;
     private final AccountRepository accounts;
     private final HoldingRepository holdings;
@@ -48,31 +51,56 @@ public class TradeService {
 
     @Transactional(readOnly = true)
     public MarketSummaryDataBean getMarketSummary() {
-        List<QuoteDataBean> all = quotes.findAll();
-        List<QuoteDataBean> sorted = all.stream()
-                .sorted((left, right) -> Double.compare(right.getChange(), left.getChange())).toList();
-        List<QuoteDataBean> gainers = sorted.stream().limit(5).toList();
-        List<QuoteDataBean> losers = new ArrayList<>(sorted.stream().skip(Math.max(0, sorted.size() - 5L)).toList());
-        BigDecimal priceTotal = all.stream().map(QuoteDataBean::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal openTotal = all.stream().map(QuoteDataBean::getOpen).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal tsia = all.isEmpty() ? FinancialUtils.ZERO
-                : priceTotal.divide(BigDecimal.valueOf(all.size()), 2, RoundingMode.HALF_UP);
-        BigDecimal open = all.isEmpty() ? FinancialUtils.ZERO
-                : openTotal.divide(BigDecimal.valueOf(all.size()), 2, RoundingMode.HALF_UP);
-        return new MarketSummaryDataBean(tsia, open, all.stream().mapToDouble(QuoteDataBean::getVolume).sum(),
-                gainers, losers);
+        int interval = TradeConfig.getMarketSummaryIntervalValue();
+        if (interval == 0) return getMarketSummaryInternal();
+        if (interval < 0) return cachedMarketSummary;
+        long currentTime = System.currentTimeMillis();
+        if (currentTime > nextMarketSummary) {
+            long oldNextMarketSummary = nextMarketSummary;
+            boolean fetch = false;
+            synchronized (MARKET_SUMMARY_LOCK) {
+                if (oldNextMarketSummary == nextMarketSummary) {
+                    fetch = true;
+                    nextMarketSummary += interval * 1000L;
+                    if (nextMarketSummary < currentTime) nextMarketSummary = currentTime + interval * 1000L;
+                }
+            }
+            if (fetch) cachedMarketSummary = getMarketSummaryInternal();
+        }
+        return cachedMarketSummary;
+    }
+
+    @Transactional(readOnly = true)
+    public MarketSummaryDataBean getMarketSummaryInternal() {
+        List<QuoteDataBean> quoteList = quotes.findQuotesByChange();
+        QuoteDataBean[] quoteArray = quoteList.toArray(new QuoteDataBean[0]);
+        List<QuoteDataBean> gainers = new ArrayList<>(5);
+        List<QuoteDataBean> losers = new ArrayList<>(5);
+        BigDecimal tsia = FinancialUtils.ZERO;
+        BigDecimal openTSIA = FinancialUtils.ZERO;
+        double totalVolume = 0;
+        if (quoteArray.length > 5) {
+            for (int index = 0; index < 5; index++) gainers.add(quoteArray[index]);
+            for (int index = quoteArray.length - 1; index >= quoteArray.length - 5; index--) {
+                losers.add(quoteArray[index]);
+            }
+            for (QuoteDataBean quote : quoteArray) {
+                tsia = tsia.add(quote.getPrice());
+                openTSIA = openTSIA.add(quote.getOpen());
+                totalVolume += quote.getVolume();
+            }
+            tsia = tsia.divide(new BigDecimal(quoteArray.length), FinancialUtils.ROUND);
+            openTSIA = openTSIA.divide(new BigDecimal(quoteArray.length), FinancialUtils.ROUND);
+        }
+        return new MarketSummaryDataBean(tsia, openTSIA, totalVolume, gainers, losers);
     }
 
     public OrderDataBean buy(String userID, String symbol, double quantity, int orderProcessingMode) {
         AccountDataBean account = accountFor(userID);
         QuoteDataBean quote = quoteFor(symbol);
-        BigDecimal fee = TradeConfig.getOrderFee("buy");
-        OrderDataBean order = new OrderDataBean("buy", "open", new Timestamp(System.currentTimeMillis()),
-                null, quantity, quote.getPrice().setScale(FinancialUtils.SCALE, FinancialUtils.ROUND),
-                fee, account, quote, null);
-        account.setBalance(account.getBalance().subtract(quote.getPrice()
-                .multiply(BigDecimal.valueOf(quantity)).add(fee)));
-        orders.save(order);
+        OrderDataBean order = createOrder(account, quote, null, "buy", quantity);
+        BigDecimal total = new BigDecimal(quantity).multiply(quote.getPrice()).add(order.getOrderFee());
+        account.setBalance(account.getBalance().subtract(total));
         dispatch(order, orderProcessingMode);
         return order;
     }
@@ -86,13 +114,10 @@ public class TradeService {
             return orders.save(cancelled);
         }
         QuoteDataBean quote = holding.getQuote();
-        OrderDataBean order = new OrderDataBean("sell", "open", new Timestamp(System.currentTimeMillis()),
-                null, holding.getQuantity(), quote.getPrice().setScale(FinancialUtils.SCALE, FinancialUtils.ROUND),
-                TradeConfig.getOrderFee("sell"), account, quote, holding);
+        OrderDataBean order = createOrder(account, quote, holding, "sell", holding.getQuantity());
         holding.setPurchaseDate(new Timestamp(0));
-        account.setBalance(account.getBalance().add(quote.getPrice()
-                .multiply(BigDecimal.valueOf(holding.getQuantity())).subtract(order.getOrderFee())));
-        orders.save(order);
+        BigDecimal total = new BigDecimal(holding.getQuantity()).multiply(quote.getPrice()).subtract(order.getOrderFee());
+        account.setBalance(account.getBalance().add(total));
         dispatch(order, orderProcessingMode);
         return order;
     }
@@ -100,14 +125,14 @@ public class TradeService {
     private void dispatch(OrderDataBean order, int mode) {
         if (mode == TradeConfig.SYNCH) {
             completeOrder(order.getOrderID(), false);
-            return;
-        }
-        OrderQueue queue = orderQueue.getIfAvailable();
-        if (queue == null) {
-            Log.error("No OrderQueue bean is configured; processing the order synchronously.");
-            completeOrder(order.getOrderID(), false);
-        } else {
-            queue.submit(order.getOrderID(), mode == TradeConfig.ASYNCH_2PHASE);
+        } else if (mode == TradeConfig.ASYNCH_2PHASE) {
+            OrderQueue queue = orderQueue.getIfAvailable();
+            if (queue == null) {
+                Log.error("No OrderQueue bean is configured; processing the order synchronously.");
+                completeOrder(order.getOrderID(), false);
+            } else {
+                queue.submit(order.getOrderID(), true);
+            }
         }
     }
 
@@ -120,9 +145,8 @@ public class TradeService {
         if (order == null) return null;
         if (order.isCompleted()) throw new IllegalStateException("Order is already completed: " + orderID);
         if (order.isBuy()) {
-            HoldingDataBean holding = new HoldingDataBean(order.getQuantity(), order.getPrice(),
-                    new Timestamp(System.currentTimeMillis()), order.getAccount(), order.getQuote());
-            holdings.save(holding);
+            HoldingDataBean holding = createHolding(order.getAccount(), order.getQuote(),
+                    order.getQuantity(), order.getPrice());
             order.setHolding(holding);
         } else if (order.isSell()) {
             HoldingDataBean holding = order.getHolding();
@@ -147,9 +171,14 @@ public class TradeService {
         return orders.findByAccount_Profile_UserIDOrderByOpenDateDesc(userID);
     }
 
-    @Transactional(readOnly = true)
     public Collection<OrderDataBean> getClosedOrders(String userID) {
-        return orders.findByAccount_Profile_UserIDAndOrderStatusOrderByOpenDateDesc(userID, "closed");
+        Collection<OrderDataBean> closedOrders =
+                orders.findByAccount_Profile_UserIDAndOrderStatusOrderByOpenDateDesc(userID, "closed");
+        for (OrderDataBean order : closedOrders) {
+            order.getQuote();
+            order.setOrderStatus("completed");
+        }
+        return closedOrders;
     }
 
     public QuoteDataBean createQuote(String symbol, String companyName, BigDecimal price) {
@@ -255,5 +284,20 @@ public class TradeService {
 
     private QuoteDataBean quoteFor(String symbol) {
         return quotes.findById(symbol).orElseThrow(() -> new IllegalArgumentException("No such quote: " + symbol));
+    }
+
+    private OrderDataBean createOrder(AccountDataBean account, QuoteDataBean quote, HoldingDataBean holding,
+                                      String orderType, double quantity) {
+        OrderDataBean order = new OrderDataBean(orderType, "open", new Timestamp(System.currentTimeMillis()),
+                null, quantity, quote.getPrice().setScale(FinancialUtils.SCALE, FinancialUtils.ROUND),
+                TradeConfig.getOrderFee(orderType), account, quote, holding);
+        return orders.save(order);
+    }
+
+    private HoldingDataBean createHolding(AccountDataBean account, QuoteDataBean quote,
+                                          double quantity, BigDecimal purchasePrice) {
+        HoldingDataBean holding = new HoldingDataBean(quantity, purchasePrice,
+                new Timestamp(System.currentTimeMillis()), account, quote);
+        return holdings.save(holding);
     }
 }

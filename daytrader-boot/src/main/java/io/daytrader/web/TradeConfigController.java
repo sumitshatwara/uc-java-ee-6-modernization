@@ -125,8 +125,7 @@ public class TradeConfigController {
         int holdingID = 0;
         int orderID = 0;
         for (int i = 0; i < config.getMaxUsers(); i++) {
-            int holdingCount = i == 0 ? Math.max(1, TradeConfig.rndInt(config.getMaxHoldings() + 1))
-                    : TradeConfig.rndInt(config.getMaxHoldings() + 1);
+            int holdingCount = TradeConfig.rndInt(config.getMaxHoldings() + 1);
             for (int j = 0; j < holdingCount; j++) {
                 int quoteIndex = TradeConfig.rndInt(Math.max(1, config.getMaxQuotes() - 1));
                 String symbol = "s:" + quoteIndex;

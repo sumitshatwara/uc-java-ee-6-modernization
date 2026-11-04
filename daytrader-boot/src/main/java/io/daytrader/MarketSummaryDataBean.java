@@ -17,8 +17,10 @@
 package io.daytrader;
 
 import io.daytrader.entity.QuoteDataBean;
+import io.daytrader.config.TradeConfig;
 import io.daytrader.util.FinancialUtils;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 
@@ -38,7 +40,17 @@ public class MarketSummaryDataBean {
         this.volume = volume;
         this.topGainers = topGainers;
         this.topLosers = topLosers;
-        this.summaryDate = new Date();
+        this.summaryDate = new java.sql.Date(System.currentTimeMillis());
+    }
+    public static MarketSummaryDataBean getRandomInstance() {
+        Collection<QuoteDataBean> gainers = new ArrayList<>();
+        Collection<QuoteDataBean> losers = new ArrayList<>();
+        for (int index = 0; index < 5; index++) {
+            gainers.add(QuoteDataBean.getRandomInstance());
+            losers.add(QuoteDataBean.getRandomInstance());
+        }
+        return new MarketSummaryDataBean(TradeConfig.rndBigDecimal(1000000.0f),
+                TradeConfig.rndBigDecimal(1000000.0f), TradeConfig.rndQuantity(), gainers, losers);
     }
     public BigDecimal getTSIA() { return TSIA; }
     public void setTSIA(BigDecimal TSIA) { this.TSIA = TSIA; }

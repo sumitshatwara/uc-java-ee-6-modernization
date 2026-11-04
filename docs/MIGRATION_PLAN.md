@@ -44,6 +44,11 @@ This plan carries the recorded Liberty baseline forward without changing the leg
 
 ## Decisions
 
+### Deliberate decisions
+
+- The seed writes the same account, quote, holding, and closed-order rows as legacy `buildDB`, but uses direct batched JDBC; legacy register-and-buy seeding took about 90 seconds, while this takes about 2 seconds.
+- `buildDBTables` uses H2 in PostgreSQL compatibility mode for local development and tests.
+
 - Keep JSP pages' `/daytrader/app?action=…` URLs while porting their UI to Thymeleaf. Drop the JSF pages; they are not covered by parity.
 - Keep synchronous order processing as the default. SQS/SNS integration is optional and disabled unless the `sqs` profile is active.
 - Do not port the Direct JDBC runtime mode; use the JPA implementation only.
