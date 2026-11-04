@@ -1,11 +1,16 @@
 package io.daytrader;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import io.daytrader.entity.AccountDataBean;
+import io.daytrader.entity.HoldingDataBean;
 import io.daytrader.entity.OrderDataBean;
 import io.daytrader.entity.QuoteDataBean;
 import io.daytrader.repository.OrderRepository;
@@ -98,6 +103,31 @@ class TradeApplicationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(
                         org.hamcrest.Matchers.containsString("The following Order(s) have completed."))));
+    }
+
+    @Test
+    void completedStatusMatchesLegacyOrderStates() {
+        for (String status : List.of("completed", "alertcompleted", "cancelled",
+                "COMPLETED", "ALERTCOMPLETED", "CANCELLED")) {
+            OrderDataBean order = new OrderDataBean();
+            order.setOrderStatus(status);
+            assertTrue(order.isCompleted(), status);
+        }
+        for (String status : List.of("closed", "CLOSED", "open", "processing")) {
+            OrderDataBean order = new OrderDataBean();
+            order.setOrderStatus(status);
+            assertFalse(order.isCompleted(), status);
+        }
+    }
+
+    @Test
+    void financialUtilsPreservesLegacyScaleBehavior() {
+        assertEquals(new BigDecimal("2.50"),
+                FinancialUtils.computeGain(new BigDecimal("102.50"), new BigDecimal("100.00")));
+        assertThrows(ArithmeticException.class,
+                () -> FinancialUtils.computeGain(new BigDecimal("1.001"), BigDecimal.ZERO));
+        HoldingDataBean holding = new HoldingDataBean(0.1, new BigDecimal("1.00"), new Date(), null, null);
+        assertThrows(ArithmeticException.class, () -> FinancialUtils.computeHoldingsTotal(List.of(holding)));
     }
 
     @Test
