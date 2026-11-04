@@ -15,16 +15,14 @@
   limitations under the License.
 -->
 <!DOCTYPE HTML>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
   <title>Welcome to DayTrader</title>
   <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="#ffffff" link="#000099" vlink="#000099">
 <div th:replace="~{fragments/layout :: homeHeader}"></div>
-<div th:replace="~{fragments/layout :: clock}"></div>
-<div th:replace="~{fragments/layout :: closedOrdersAlert}"></div>
 <table width="636"><tbody><tr>
   <td valign="top" width="377">
     <table width="384"><tbody>
@@ -40,49 +38,50 @@
         </td>
         <td width="22"></td>
         <td align="left" width="212">
-          <span th:text="${accountData.accountID}"></span><br>
-          <span th:text="${accountCreatedDate}"></span><br>
-          <span th:text="${accountData.loginCount}"></span><br>
-          <span th:text="${sessionCreationDate}"></span><br>
+          <th:block th:text="${accountData.accountID}"></th:block><br>
+          <th:block th:text="${accountCreatedDate}"></th:block><br>
+          <th:block th:text="${accountData.loginCount}"></th:block><br>
+          <th:block th:text="${sessionCreationDate}"></th:block><br>
         </td>
       </tr>
       <tr><td width="133"></td><td width="22"></td><td width="212"></td></tr>
       <tr><td colspan="3" bgcolor="#cccccc"><b>Account Summary </b></td></tr>
       <tr>
         <td align="right" valign="top" width="133">
-          <a href="docs/glossary.html"> cash balance:<br>
-          number of holdings:<br>
-          total of holdings:<br>
+          <a href="docs/glossary.html"> cash balance:</a><br>
+          <a href="docs/glossary.html">number of holdings:</a><br>
+          <a href="docs/glossary.html">total of holdings:<br>
           sum of cash/holdings<br>
-          opening balance:<br></a><hr>
+          opening balance:<br>
+          </a><hr>
         </td>
         <td width="22"></td>
         <td align="left" valign="top" width="212">
-          <span th:text="|$ ${accountData.balance}|"></span><br>
-          <span th:text="${#lists.size(holdingDataBeans)}"></span><br>
-          <span th:text="|$ ${holdingsTotal}|"></span><br>
-          <span th:text="|$ ${sumOfCashHoldings}|"></span><br>
-          <span th:text="|$ ${accountData.openBalance}|"></span><br><hr>
+          <th:block th:text="|$ ${accountData.balance}|"></th:block><br>
+          <th:block th:text="${#lists.size(holdingDataBeans)}"></th:block><br>
+          <th:block th:text="|$ ${holdingsTotal}|"></th:block><br>
+          <th:block th:text="|$ ${sumOfCashHoldings}|"></th:block><br>
+          <th:block th:text="|$ ${accountData.openBalance}|"></th:block><br><hr>
         </td>
       </tr>
       <tr>
         <td valign="top" align="right"><a href="docs/glossary.html">current
           gain/(loss):</a></td>
         <td></td>
-        <td valign="top">$ <b><span th:utext="${gainHtml}"></span>
-          <span th:utext="${gainPercentHtml}"></span></b></td>
+        <td valign="top">$ <b><th:block th:utext="${gainHtml}"></th:block>
+          <th:block th:utext="${gainPercentHtml}"></th:block></b></td>
       </tr>
     </tbody></table>
   </td>
-  <td align="center" valign="top" bgcolor="#ffffff" width="236"><br>
+  <td align="center" valign="top" bgcolor="#ffffff" width="236">
     <table border="1" bgcolor="#ffffff" width="100%" style="font-size: smaller"><tbody>
       <tr><td colspan="2" bgcolor="#000000" align="center" height="15"><font color="#ffffff"><b>Market Summary<br>
-        <span th:text="${marketSummaryDate}"></span></b></font></td></tr>
+        <th:block th:text="${marketSummaryDate}"></th:block></b></font></td></tr>
       <tr>
         <td align="right" bgcolor="#fafcb6" height="47" width="100"><a href="docs/glossary.html">DayTrader Stock Index (TSIA)</a></td>
         <td align="center" valign="middle" bgcolor="#ffffff" height="47" width="141">
-          <span th:text="|${marketSummaryData.TSIA} (|"></span>
-          <span th:utext="${marketGainPercentHtml}"></span>
+          <th:block th:text="|${marketSummaryData.TSIA} (|"></th:block>
+          <th:block th:utext="${marketGainPercentHtml}"></th:block>
         </td>
       </tr>
       <tr><td align="right" bgcolor="#fafcb6"><a href="docs/glossary.html">Trading
@@ -109,7 +108,7 @@
           </tr>
         </tbody></table></td>
       </tr>
-    </tbody></table>
+    </tbody></table><br>
   </td>
 </tr></tbody></table>
 <div th:replace="~{fragments/layout :: homeFooter}"></div>

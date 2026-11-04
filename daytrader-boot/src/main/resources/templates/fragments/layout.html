@@ -40,44 +40,75 @@
       <td><b><a href="app?action=logout">Logoff</a></b></td>
       <td></td>
     </tr>
+    <tr>
+      <td align="right" colspan="6">
+        <hr><font color="#ff0000" size="-2" th:text="${pageDate}">Thu Jan 01 00:00:00 UTC 1970</font>
+      </td>
+    </tr>
+    <th:block th:if="${closedOrders != null and !#lists.isEmpty(closedOrders)}">
+      <tr><td colspan="6" bgcolor="#ff0000"><blink><b><font color="#ffffff">Alert: The following Order(s) have completed.</font></b></blink></td></tr>
+      <tr align="center">
+        <td colspan="6">
+          <table border="1" style="font-size: smaller"><tbody>
+            <th:block th:each="order : ${closedOrders}">
+              <tr align="center">
+                <td><a href="docs/glossary.html">order ID</a></td>
+                <td><a href="docs/glossary.html">order status</a></td>
+                <td><a href="docs/glossary.html">creation date</a></td>
+                <td><a href="docs/glossary.html">completion date</a></td>
+                <td><a href="docs/glossary.html">txn fee</a></td>
+                <td><a href="docs/glossary.html">type</a></td>
+                <td><a href="docs/glossary.html">symbol</a></td>
+                <td><a href="docs/glossary.html">quantity</a></td>
+              </tr>
+              <tr align="center">
+                <td th:text="${order.orderID}"></td>
+                <td th:text="${order.orderStatus}"></td>
+                <td th:text="${order.openDate}"></td>
+                <td th:text="${order.completionDate}"></td>
+                <td th:text="${order.orderFee}"></td>
+                <td th:text="${order.orderType}"></td>
+                <td><a th:href="|app?action=quotes&symbols=${order.symbol}|" th:text="${order.symbol}"></a></td>
+                <td th:text="${order.quantity}"></td>
+              </tr>
+            </th:block>
+          </tbody></table>
+        </td>
+      </tr>
+    </th:block>
     </tbody>
   </table>
 </th:block>
-<th:block th:fragment="clock">
-  <table><tbody><tr><td align="right" colspan="6">
-    <hr><font color="#ff0000" size="-2" th:text="${pageDate}">Thu Jan 01 00:00:00 UTC 1970</font>
-  </td></tr></tbody></table>
-</th:block>
-<th:block th:fragment="closedOrdersAlert">
-  <table th:if="${closedOrders != null and !closedOrders.isEmpty()}">
-    <tbody>
-    <tr><td colspan="6" bgcolor="#ff0000"><blink><b><font color="#ffffff">Alert:
-      The following Order(s) have completed.</font></b></blink></td></tr>
+<th:block th:fragment="closedOrderRowsAlert">
+  <th:block th:if="${closedOrderRows != null and !#lists.isEmpty(closedOrderRows)}">
+    <tr><td colspan="6" bgcolor="#ff0000"><blink><b><font color="#ffffff">Alert: The following Order(s) have completed.</font></b></blink></td></tr>
     <tr align="center"><td colspan="6">
       <table border="1" style="font-size: smaller"><tbody>
-      <th:block th:each="order : ${closedOrders}">
-        <tr align="center">
-          <td><a href="docs/glossary.html">order ID</a></td>
-          <td><a href="docs/glossary.html">order status</a></td>
-          <td><a href="docs/glossary.html">creation date</a></td>
-          <td><a href="docs/glossary.html">completion date</a></td>
-          <td><a href="docs/glossary.html">txn fee</a></td>
-          <td><a href="docs/glossary.html">type</a></td>
-          <td><a href="docs/glossary.html">symbol</a></td>
-          <td><a href="docs/glossary.html">quantity</a></td>
-        </tr>
-        <tr align="center">
-          <td th:text="${order.orderID}"></td><td th:text="${order.orderStatus}"></td>
-          <td th:text="${order.openDate}"></td><td th:text="${order.completionDate}"></td>
-          <td th:text="${order.orderFee}"></td><td th:text="${order.orderType}"></td>
-          <td><a th:href="@{/app(action='quotes',symbols=${order.symbol})}" th:text="${order.symbol}"></a></td>
-          <td th:text="${order.quantity}"></td>
-        </tr>
-      </th:block>
+        <th:block th:each="row : ${closedOrderRows}">
+          <tr align="center">
+            <td><a href="docs/glossary.html">order ID</a></td>
+            <td><a href="docs/glossary.html">order status</a></td>
+            <td><a href="docs/glossary.html">creation date</a></td>
+            <td><a href="docs/glossary.html">completion date</a></td>
+            <td><a href="docs/glossary.html">txn fee</a></td>
+            <td><a href="docs/glossary.html">type</a></td>
+            <td><a href="docs/glossary.html">symbol</a></td>
+            <td><a href="docs/glossary.html">quantity</a></td>
+          </tr>
+          <tr align="center">
+            <td th:text="${row.orderID}">order id</td>
+            <td th:text="${row.orderStatus}">order status</td>
+            <td th:text="${row.openDate}">open date</td>
+            <td th:text="${row.completionDate}">completion date</td>
+            <td th:text="${row.orderFee}">fee</td>
+            <td th:text="${row.orderType}">type</td>
+            <td th:utext="${row.symbolLink}">symbol</td>
+            <td th:text="${row.quantity}">quantity</td>
+          </tr>
+        </th:block>
       </tbody></table>
     </td></tr>
-    </tbody>
-  </table>
+  </th:block>
 </th:block>
 <th:block th:fragment="homeFooter">
   <table height="54" style="font-size: smaller"><tbody>
